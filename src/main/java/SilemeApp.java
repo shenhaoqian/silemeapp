@@ -552,3 +552,6 @@ public class SilemeApp {
         }
     }
 }
+// I want to be good friends with GJJ forever
+// I love you
+// But I can't say it.
