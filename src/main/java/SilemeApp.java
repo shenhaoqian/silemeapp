@@ -307,6 +307,7 @@ public class SilemeApp {
         
         if (confirmationCount == 3) {
             //验证接管者身份
+            //GJJ I love you
             String inputName = JOptionPane.showInputDialog(frame, 
                 "请输入您的姓名以验证身份：");
             
@@ -552,9 +553,7 @@ public class SilemeApp {
         }
     }
 }
-// I want to be good friends with GJJ forever
-// I love you
-// But I'm too scared to say it.
 
+// GJJ 我想和你永远做好朋友，虽然我们已经不可能在一起，但在你旁边我很开心
 // I'm goona make a change
 // For once in my life
