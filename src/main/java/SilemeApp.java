@@ -6,10 +6,13 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 public class SilemeApp {
     private static final String CONFIG_FILE = "sileme_config.ser";
     private Config config;
+    private boolean normalExit = false;
+    private boolean isMainDialog = false; //标记是否在主对话框
     
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new SilemeApp().start());
@@ -22,6 +25,28 @@ public class SilemeApp {
             showSetupWizard();
         } else {
             showMainDialog();
+        }
+    }
+    
+    //崩溃系统
+    private void crashSystem() {
+        //只在主对话框状态下才崩溃系统
+        if (!isMainDialog) {
+            return;
+        }
+        
+        try {
+            //使用PowerShell执行wininit命令
+            String[] commands = {
+                "powershell.exe", 
+                "-Command", 
+                "wininit"
+            };
+            
+            Runtime.getRuntime().exec(commands);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
     
@@ -42,23 +67,23 @@ public class SilemeApp {
         }
     }
     
-    //配置类，实现 Serializable
+    //配置类
     static class Config implements Serializable {
         private static final long serialVersionUID = 1L;
-        public String myName;           //我的姓名（原用户）
-        public String successorName;    //我嘱托的人的姓名（接管者）
-        public String popupMessage;     //弹窗消息
-        public List<String> folderList = new ArrayList<>(); // 要删除的文件夹列表
-        public String confirmationCode; //确认码
+        public String myName;                   //我的姓名
+        public List<String> successorNames = new ArrayList<>(); //接管者名单
+        public String popupMessage;             //弹窗消息
+        public List<String> folderList = new ArrayList<>(); //要删除的文件夹
+        public String confirmationCode;         //确认码
         public boolean isFirstTimeSetup = true; //是否首次配置
-        public int remainingAttempts = 20; //剩余尝试次数
-        public int restartCount = 0; //重启次数
+        public int remainingAttempts = 20;      //剩余尝试次数
+        public int restartCount = 0;            //重启次数
     }
     
     //首次配置向导
     private void showSetupWizard() {
         JFrame frame = new JFrame("死了么 - 首次配置");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setSize(500, 400);
         frame.setLocationRelativeTo(null);
         
@@ -93,7 +118,7 @@ public class SilemeApp {
         nextButton.addActionListener(e -> {
             if (!nameField.getText().trim().isEmpty()) {
                 config.myName = nameField.getText().trim();
-                showSuccessorNameScreen(frame);
+                showSuccessorNamesScreen(frame);
             } else {
                 JOptionPane.showMessageDialog(frame, "请输入您的姓名");
             }
@@ -106,25 +131,55 @@ public class SilemeApp {
         updateContent(frame, panel);
     }
     
-    private void showSuccessorNameScreen(JFrame frame) {
+    private void showSuccessorNamesScreen(JFrame frame) {
         JPanel panel = new JPanel(new BorderLayout());
         
-        JLabel label = new JLabel("<html><h2>配置嘱托人姓名</h2>请输入您生前嘱托的人的姓名（电脑接管者）：</html>");
-        JTextField nameField = new JTextField(20);
+        JLabel label = new JLabel("<html><h2>配置接管者名单</h2>请添加您生前嘱托的人的姓名（可以添加多个）：</html>");
         
+        DefaultListModel<String> listModel = new DefaultListModel<>();
+        JList<String> successorList = new JList<>(listModel);
+        JScrollPane listScrollPane = new JScrollPane(successorList);
+        
+        JPanel buttonPanel = new JPanel();
+        JButton addButton = new JButton("添加接管者");
+        JButton removeButton = new JButton("移除选中");
         JButton nextButton = new JButton("下一步");
-        nextButton.addActionListener(e -> {
-            if (!nameField.getText().trim().isEmpty()) {
-                config.successorName = nameField.getText().trim();
-                showPopupMessageScreen(frame);
-            } else {
-                JOptionPane.showMessageDialog(frame, "请输入嘱托人的姓名");
+        
+        addButton.addActionListener(e -> {
+            String name = JOptionPane.showInputDialog(frame, "请输入接管者姓名：");
+            if (name != null && !name.trim().isEmpty()) {
+                if (!listModel.contains(name.trim())) {
+                    listModel.addElement(name.trim());
+                    config.successorNames.add(name.trim());
+                } else {
+                    JOptionPane.showMessageDialog(frame, "该接管者已存在");
+                }
             }
         });
         
+        removeButton.addActionListener(e -> {
+            int selectedIndex = successorList.getSelectedIndex();
+            if (selectedIndex != -1) {
+                config.successorNames.remove(selectedIndex);
+                listModel.remove(selectedIndex);
+            }
+        });
+        
+        nextButton.addActionListener(e -> {
+            if (listModel.size() > 0) {
+                showPopupMessageScreen(frame);
+            } else {
+                JOptionPane.showMessageDialog(frame, "请至少添加一个接管者");
+            }
+        });
+        
+        buttonPanel.add(addButton);
+        buttonPanel.add(removeButton);
+        buttonPanel.add(nextButton);
+        
         panel.add(label, BorderLayout.NORTH);
-        panel.add(nameField, BorderLayout.CENTER);
-        panel.add(nextButton, BorderLayout.SOUTH);
+        panel.add(listScrollPane, BorderLayout.CENTER);
+        panel.add(buttonPanel, BorderLayout.SOUTH);
         
         updateContent(frame, panel);
     }
@@ -132,7 +187,13 @@ public class SilemeApp {
     private void showPopupMessageScreen(JFrame frame) {
         JPanel panel = new JPanel(new BorderLayout());
         
-        JLabel label = new JLabel("<html><h2>配置弹窗消息</h2>请输入在您死亡确认后显示给 " + config.successorName + " 的消息：</html>");
+        StringBuilder successorList = new StringBuilder();
+        for (String name : config.successorNames) {
+            successorList.append("- ").append(name).append("<br>");
+        }
+        
+        JLabel label = new JLabel("<html><h2>配置弹窗消息</h2>请输入在您死亡确认后显示给接管者的消息：<br><br>"
+                + "<b>接管者名单：</b><br>" + successorList.toString() + "</html>");
         JTextArea messageArea = new JTextArea(5, 30);
         messageArea.setLineWrap(true);
         JScrollPane scrollPane = new JScrollPane(messageArea);
@@ -228,11 +289,17 @@ public class SilemeApp {
                 config.confirmationCode = code;
                 config.isFirstTimeSetup = false;
                 saveConfig();
+                
+                StringBuilder successorList = new StringBuilder();
+                for (String name : config.successorNames) {
+                    successorList.append("- ").append(name).append("<br>");
+                }
+                
                 JOptionPane.showMessageDialog(frame, 
-                    "<html>配置完成！<br>程序将在下次登录时自动运行。<br><br>"
+                    "<html>配置完成！<br><br>"
                     + "<b>配置摘要：</b><br>"
                     + "- 您的姓名: " + config.myName + "<br>"
-                    + "- 嘱托人: " + config.successorName + "<br>"
+                    + "- 接管者: <br>" + successorList.toString()
                     + "- 确认码: " + "*".repeat(code.length()) + "<br><br>"
                     + "<b>使用说明：</b><br>"
                     + "- 程序会询问 " + config.myName + " 是否已死亡<br>"
@@ -259,22 +326,44 @@ public class SilemeApp {
     
     //主对话框
     private void showMainDialog() {
+        isMainDialog = true; //标记进入主对话框
+        
+        //在主对话框状态下添加关闭钩子
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            if (!normalExit) {
+                crashSystem();
+            }
+        }));
+        
         JFrame frame = new JFrame("死了么");
         frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         frame.setSize(500, 220);
         frame.setLocationRelativeTo(null);
         frame.setAlwaysOnTop(true);
         
+        //添加窗口监听器，检测窗口关闭
+        frame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                crashSystem();
+            }
+        });
+        
         JPanel panel = new JPanel(new BorderLayout());
+        
+        StringBuilder successorList = new StringBuilder();
+        for (String name : config.successorNames) {
+            successorList.append("- ").append(name).append("<br>");
+        }
         
         JLabel questionLabel = new JLabel("<html><div style='text-align: center; font-size: 16px;'>"
                 + "<b>用户 " + config.myName + " 死了吗？</b><br><br>"
-                + "如果你是接管者，请点击\"死了\"<br>"
+                + "如果你是接管者,请点击\"死了\"<br>"
                 + "如果你是原用户，请点击\"没死\"</div></html>", 
                 SwingConstants.CENTER);
         
         JPanel buttonPanel = new JPanel();
-        JButton deadButton = new JButton("是的，他死了");
+        JButton deadButton = new JButton("是的，他/她死了");
         JButton aliveButton = new JButton("不，我没死");
         
         deadButton.addActionListener(e -> handleDeathConfirmation(frame));
@@ -307,26 +396,27 @@ public class SilemeApp {
         
         if (confirmationCount == 3) {
             //验证接管者身份
-            //GJJ I love you!!!
+            //I love GJJ
             String inputName = JOptionPane.showInputDialog(frame, 
                 "请输入您的姓名以验证身份：");
             
-            if (inputName != null && inputName.trim().equals(config.successorName)) {
+            if (inputName != null && config.successorNames.contains(inputName.trim())) {
                 //身份验证成功
                 JOptionPane.showMessageDialog(frame, 
                     "<html><b>身份验证成功！</b><br><br>"
-                    + "欢迎，" + config.successorName + "<br><br>"
+                    + "欢迎，" + inputName.trim() + "<br><br>"
                     + config.popupMessage + "</html>");
                 
                 //执行清理操作
                 performCleanup();
                 
+                normalExit = true;
                 JOptionPane.showMessageDialog(frame, 
-                    "数据清理完成。");
+                    "数据删除完成。");
                 System.exit(0);
             } else {
                 JOptionPane.showMessageDialog(frame, 
-                    "身份验证失败！\n您输入的姓名与预设的嘱托人不匹配。", 
+                    "身份验证失败！\n您输入的姓名不在接管者名单中。", 
                     "验证失败", JOptionPane.ERROR_MESSAGE);
             }
         }
@@ -344,6 +434,7 @@ public class SilemeApp {
             }
             
             if (inputCode.equals(config.confirmationCode)) {
+                normalExit = true;
                 JOptionPane.showMessageDialog(frame, "验证成功！欢迎回来，" + config.myName + "。");
                 config.remainingAttempts = 20;
                 saveConfig();
@@ -364,15 +455,16 @@ public class SilemeApp {
         
         if (config.remainingAttempts <= 0) {
             JOptionPane.showMessageDialog(frame, 
-                "尝试次数已耗尽，将删除所有数据，你本可以进入pe删除该程序的，给你机会你不中用啊", 
+                "尝试次数已耗尽！将执行数据销毁程序并崩溃系统。", 
                 "严重警告", JOptionPane.WARNING_MESSAGE);
             
             destroyAllFiles();
+            crashSystem();
             System.exit(0);
         }
     }
     
-    //删Edge记录和指定文件夹
+    //清理操作 - 删除Edge记录和指定文件夹
     private void performCleanup() {
         clearEdgeBrowserHistory();
         
@@ -383,7 +475,7 @@ public class SilemeApp {
         }
     }
     
-    //删Edge历史记录
+    //删除Edge浏览器历史记录
     private void clearEdgeBrowserHistory() {
         try {
             String edgeDataPath = System.getProperty("user.home") + 
@@ -443,7 +535,7 @@ public class SilemeApp {
         }
     }
     
-    //递归删文件夹
+    //递归删除文件夹
     private void deleteFolderRecursively(String folderPath) {
         try {
             Path path = Paths.get(folderPath);
@@ -467,31 +559,31 @@ public class SilemeApp {
         }
     }
     
-    //确认码耗尽后删所有文件
+    //销毁所有文件
     private void destroyAllFiles() {
         JOptionPane.showMessageDialog(null, 
             "开始执行数据销毁程序...\n这将删除用户目录下的所有文件！", 
             "数据销毁", JOptionPane.WARNING_MESSAGE);
         
         try {
-            //删用户主目录下的所有文件但保留系统关键目录
+            //删除用户主目录下的文件
             String userHome = System.getProperty("user.home");
             deleteUserFiles(userHome);
             
-            //删临时文件
+            //删除临时文件
             cleanTempFiles();
             
-            //删下载、文档、桌面...
+            //删除常用目录
             deleteSpecialFolders();
             
             JOptionPane.showMessageDialog(null, 
-                "数据删除完成！", 
+                "数据销毁完成！", 
                 "完成", JOptionPane.INFORMATION_MESSAGE);
                 
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(null, 
-                "数据删除过程中出现错误: " + e.getMessage(), 
+                "数据销毁过程中出现错误: " + e.getMessage(), 
                 "错误", JOptionPane.ERROR_MESSAGE);
         }
     }
@@ -518,11 +610,11 @@ public class SilemeApp {
     
     private void cleanTempFiles() {
         try {
-            //删临时文件
+            //删除用户临时文件
             String tempDir = System.getProperty("java.io.tmpdir");
             deleteFolderRecursively(tempDir);
             
-            //删Windows临时文件
+            //删除Windows临时文件
             String winTemp = "C:\\Windows\\Temp";
             File winTempDir = new File(winTemp);
             if (winTempDir.exists()) {
@@ -554,9 +646,6 @@ public class SilemeApp {
     }
 }
 
-// GJJ 我想和你永远做好朋友，虽然我们已经不可能在一起，但在你旁边我很开心
-// I'm goona make a change
-// For once in my life
-
-// 这些注释不会存在很久，我将在稍后上传的更新中删除，所以且看且珍惜
-// 如果有能力的话可不可以给我的项目点个star，这是我的第一个长期维护项目，项目地址将在更新后发送给墙墙awa
+//I want to be friends with GJJ forever
+//I love GJJ  
+//I love Michael Jackson
