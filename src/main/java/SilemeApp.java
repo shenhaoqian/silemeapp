@@ -647,4 +647,4 @@ public class SilemeApp {
 }
 
 //I want to be friends with GJJ forever
-//I love GJJ  
+//I love Michael Jackson 
