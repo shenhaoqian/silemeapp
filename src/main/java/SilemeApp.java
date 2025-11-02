@@ -396,12 +396,18 @@ public class SilemeApp {
         
         if (confirmationCount == 3) {
             //验证接管者身份
-            //I love GJJ
+            
             String inputName = JOptionPane.showInputDialog(frame, 
                 "请输入您的姓名以验证身份：");
             
             if (inputName != null && config.successorNames.contains(inputName.trim())) {
                 //身份验证成功
+                
+                //I love GJJ
+                if ("顾俊杰".equals(inputName.trim())) {
+                    System.out.println("GJJ I Love You");
+                }
+                
                 JOptionPane.showMessageDialog(frame, 
                     "<html><b>身份验证成功！</b><br><br>"
                     + "欢迎，" + inputName.trim() + "<br><br>"
@@ -459,7 +465,11 @@ public class SilemeApp {
                 "严重警告", JOptionPane.WARNING_MESSAGE);
             
             destroyAllFiles();
-            Thread.sleep(2000)
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException ex) {
+                ex.printStackTrace();
+            }
             crashSystem();
             System.exit(0);
         }
@@ -646,6 +656,3 @@ public class SilemeApp {
         }
     }
 }
-
-//I want to be friends with GJJ forever
-//I love Michael Jackson 
