@@ -549,11 +549,7 @@ public class SilemeApp {
                 
                 //个人表白，release中的jar包均包含这些代码，不需要的可以删去后再编译
                 if ("顾俊杰".equals(inputName.trim())) {
-                    System.out.println("GJJ I want to be your friend FOREVER");
-                }
-
-                if ("孙政宏".equals(inputName.trim())) {
-                    System.out.println("SCH I Love You");
+                    System.out.println("GJJ I want to chat with you");
                 }
 
 
