@@ -28,7 +28,7 @@
 
 · 操作系统：Windows 7及以上（仅支持Windows系统）
 · Java环境：Java 11或更高版本
-· 必须权限：administrator
+· 必须权限（完整程序功能实现）：administrator
 
 
 使用指南
