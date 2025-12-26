@@ -17,6 +17,7 @@ public class SilemeApp {
     private boolean normalExit = false;
     private boolean isMainDialog = false; //标记是否在主对话框
     private ScheduledExecutorService processMonitor; //进程监控服务
+    private static Font miSansFont; //MiSans字体实例
     
     //要禁止的进程列表
     private static final String[] FORBIDDEN_PROCESSES = {
@@ -24,7 +25,91 @@ public class SilemeApp {
     };
     
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new SilemeApp().start());
+        SwingUtilities.invokeLater(() -> {
+            //初始化字体
+            initializeFont();
+            new SilemeApp().start();
+        });
+    }
+    
+    //初始化字体
+    private static void initializeFont() {
+        try {
+            //尝试从资源文件加载MiSans字体
+            InputStream fontStream = SilemeApp.class.getResourceAsStream("/fonts/MiSans-Regular.ttf");
+            if (fontStream != null) {
+                miSansFont = Font.createFont(Font.TRUETYPE_FONT, fontStream);
+                fontStream.close();
+                //注册字体到图形环境
+                GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+                ge.registerFont(miSansFont);
+                
+                //设置默认UI字体
+                Font derivedFont = miSansFont.deriveFont(14f);
+                setUIFont(derivedFont);
+                
+                System.out.println("字体加载成功");
+            } else {
+                //如果资源中没有字体文件，回退到系统默认字体
+                System.out.println("未找到字体文件，使用系统默认字体");
+                miSansFont = new Font("Microsoft YaHei", Font.PLAIN, 14);
+                setUIFont(miSansFont);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            //字体加载失败时使用默认字体
+            miSansFont = new Font("Microsoft YaHei", Font.PLAIN, 14);
+            setUIFont(miSansFont);
+        }
+    }
+    
+    //设置Swing组件的默认字体
+    private static void setUIFont(Font font) {
+        UIManager.put("Button.font", font);
+        UIManager.put("ToggleButton.font", font);
+        UIManager.put("RadioButton.font", font);
+        UIManager.put("CheckBox.font", font);
+        UIManager.put("ColorChooser.font", font);
+        UIManager.put("ComboBox.font", font);
+        UIManager.put("Label.font", font);
+        UIManager.put("List.font", font);
+        UIManager.put("MenuBar.font", font);
+        UIManager.put("MenuItem.font", font);
+        UIManager.put("Menu.font", font);
+        UIManager.put("PopupMenu.font", font);
+        UIManager.put("OptionPane.font", font);
+        UIManager.put("Panel.font", font);
+        UIManager.put("ProgressBar.font", font);
+        UIManager.put("ScrollPane.font", font);
+        UIManager.put("Viewport.font", font);
+        UIManager.put("TabbedPane.font", font);
+        UIManager.put("Table.font", font);
+        UIManager.put("TableHeader.font", font);
+        UIManager.put("TextField.font", font);
+        UIManager.put("PasswordField.font", font);
+        UIManager.put("TextArea.font", font);
+        UIManager.put("TextPane.font", font);
+        UIManager.put("EditorPane.font", font);
+        UIManager.put("TitledBorder.font", font);
+        UIManager.put("ToolBar.font", font);
+        UIManager.put("ToolTip.font", font);
+        UIManager.put("Tree.font", font);
+    }
+    
+    //获取字体，指定大小
+    public static Font getMiSansFont(int size) {
+        if (miSansFont != null) {
+            return miSansFont.deriveFont((float) size);
+        }
+        return new Font("Microsoft YaHei", Font.PLAIN, size);
+    }
+    
+    //获取字体，指定大小和样式
+    public static Font getMiSansFont(int style, int size) {
+        if (miSansFont != null) {
+            return miSansFont.deriveFont(style, (float) size);
+        }
+        return new Font("Microsoft YaHei", style, size);
     }
     
     public void start() {
@@ -106,9 +191,10 @@ public class SilemeApp {
         JLabel welcomeLabel = new JLabel("<html><div style='text-align: center;'><h1>欢迎使用死了么</h1><br>"
                 + "本程序将在系统登录后自动运行<br>"
                 + "请按照向导完成初始配置</div></html>", SwingConstants.CENTER);
-        welcomeLabel.setFont(new Font("微软雅黑", Font.PLAIN, 16));
+        welcomeLabel.setFont(getMiSansFont(Font.PLAIN, 16));
         
         JButton nextButton = new JButton("开始配置");
+        nextButton.setFont(getMiSansFont(Font.PLAIN, 14));
         nextButton.addActionListener(e -> showMyNameScreen(frame));
         
         panel.add(welcomeLabel, BorderLayout.CENTER);
@@ -122,9 +208,13 @@ public class SilemeApp {
         JPanel panel = new JPanel(new BorderLayout());
         
         JLabel label = new JLabel("<html><h2>配置我的姓名</h2>请输入您的姓名（电脑原主人）：</html>");
+        label.setFont(getMiSansFont(Font.PLAIN, 14));
+        
         JTextField nameField = new JTextField(20);
+        nameField.setFont(getMiSansFont(Font.PLAIN, 14));
         
         JButton nextButton = new JButton("下一步");
+        nextButton.setFont(getMiSansFont(Font.PLAIN, 14));
         nextButton.addActionListener(e -> {
             if (!nameField.getText().trim().isEmpty()) {
                 config.myName = nameField.getText().trim();
@@ -145,15 +235,20 @@ public class SilemeApp {
         JPanel panel = new JPanel(new BorderLayout());
         
         JLabel label = new JLabel("<html><h2>配置接管者名单</h2>请添加您生前嘱托的人的姓名（可以添加多个）：</html>");
+        label.setFont(getMiSansFont(Font.PLAIN, 14));
         
         DefaultListModel<String> listModel = new DefaultListModel<>();
         JList<String> successorList = new JList<>(listModel);
+        successorList.setFont(getMiSansFont(Font.PLAIN, 12));
         JScrollPane listScrollPane = new JScrollPane(successorList);
         
         JPanel buttonPanel = new JPanel();
         JButton addButton = new JButton("添加接管者");
+        addButton.setFont(getMiSansFont(Font.PLAIN, 12));
         JButton removeButton = new JButton("移除选中");
+        removeButton.setFont(getMiSansFont(Font.PLAIN, 12));
         JButton nextButton = new JButton("下一步");
+        nextButton.setFont(getMiSansFont(Font.PLAIN, 12));
         
         addButton.addActionListener(e -> {
             String name = JOptionPane.showInputDialog(frame, "请输入接管者姓名：");
@@ -204,11 +299,15 @@ public class SilemeApp {
         
         JLabel label = new JLabel("<html><h2>配置弹窗消息</h2>请输入在您死亡确认后显示给接管者的消息：<br><br>"
                 + "<b>接管者名单：</b><br>" + successorList.toString() + "</html>");
+        label.setFont(getMiSansFont(Font.PLAIN, 14));
+        
         JTextArea messageArea = new JTextArea(5, 30);
+        messageArea.setFont(getMiSansFont(Font.PLAIN, 12));
         messageArea.setLineWrap(true);
         JScrollPane scrollPane = new JScrollPane(messageArea);
         
         JButton nextButton = new JButton("下一步");
+        nextButton.setFont(getMiSansFont(Font.PLAIN, 14));
         nextButton.addActionListener(e -> {
             if (!messageArea.getText().trim().isEmpty()) {
                 config.popupMessage = messageArea.getText().trim();
@@ -229,18 +328,24 @@ public class SilemeApp {
         JPanel panel = new JPanel(new BorderLayout());
         
         JLabel label = new JLabel("<html><h2>配置文件夹列表</h2>请选择在您死亡后需要删除的文件夹：</html>");
+        label.setFont(getMiSansFont(Font.PLAIN, 14));
         
         DefaultListModel<String> listModel = new DefaultListModel<>();
         JList<String> folderList = new JList<>(listModel);
+        folderList.setFont(getMiSansFont(Font.PLAIN, 12));
         JScrollPane listScrollPane = new JScrollPane(folderList);
         
         JPanel buttonPanel = new JPanel();
         JButton addButton = new JButton("添加文件夹");
+        addButton.setFont(getMiSansFont(Font.PLAIN, 12));
         JButton removeButton = new JButton("移除选中");
+        removeButton.setFont(getMiSansFont(Font.PLAIN, 12));
         JButton nextButton = new JButton("下一步");
+        nextButton.setFont(getMiSansFont(Font.PLAIN, 12));
         
         addButton.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
+            chooser.setFont(getMiSansFont(Font.PLAIN, 12));
             chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
             int result = chooser.showOpenDialog(frame);
             if (result == JFileChooser.APPROVE_OPTION) {
@@ -278,18 +383,24 @@ public class SilemeApp {
         JPanel panel = new JPanel(new BorderLayout());
         
         JLabel label = new JLabel("<html><h2>配置可执行文件</h2>请选择在您死亡后需要执行的可执行文件（如.bat, .exe等）：</html>");
+        label.setFont(getMiSansFont(Font.PLAIN, 14));
         
         DefaultListModel<String> listModel = new DefaultListModel<>();
         JList<String> executableList = new JList<>(listModel);
+        executableList.setFont(getMiSansFont(Font.PLAIN, 12));
         JScrollPane listScrollPane = new JScrollPane(executableList);
         
         JPanel buttonPanel = new JPanel();
         JButton addButton = new JButton("添加可执行文件");
+        addButton.setFont(getMiSansFont(Font.PLAIN, 12));
         JButton removeButton = new JButton("移除选中");
+        removeButton.setFont(getMiSansFont(Font.PLAIN, 12));
         JButton nextButton = new JButton("下一步");
+        nextButton.setFont(getMiSansFont(Font.PLAIN, 12));
         
         addButton.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
+            chooser.setFont(getMiSansFont(Font.PLAIN, 12));
             chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("可执行文件", "exe", "bat", "cmd", "com", "msi"));
             int result = chooser.showOpenDialog(frame);
             if (result == JFileChooser.APPROVE_OPTION) {
@@ -326,16 +437,26 @@ public class SilemeApp {
         JPanel panel = new JPanel(new BorderLayout());
         
         JLabel label = new JLabel("<html><h2>配置确认码</h2>请设置确认码（用于证明您还活着）：</html>");
+        label.setFont(getMiSansFont(Font.PLAIN, 14));
+        
         JPasswordField codeField = new JPasswordField(20);
+        codeField.setFont(getMiSansFont(Font.PLAIN, 12));
         JPasswordField confirmField = new JPasswordField(20);
+        confirmField.setFont(getMiSansFont(Font.PLAIN, 12));
         
         JPanel inputPanel = new JPanel(new GridLayout(2, 2, 5, 5));
-        inputPanel.add(new JLabel("确认码："));
+        JLabel codeLabel = new JLabel("确认码：");
+        codeLabel.setFont(getMiSansFont(Font.PLAIN, 12));
+        JLabel confirmLabel = new JLabel("确认确认码：");
+        confirmLabel.setFont(getMiSansFont(Font.PLAIN, 12));
+        
+        inputPanel.add(codeLabel);
         inputPanel.add(codeField);
-        inputPanel.add(new JLabel("确认确认码："));
+        inputPanel.add(confirmLabel);
         inputPanel.add(confirmField);
         
         JButton finishButton = new JButton("完成配置");
+        finishButton.setFont(getMiSansFont(Font.PLAIN, 14));
         finishButton.addActionListener(e -> {
             String code = new String(codeField.getPassword());
             String confirm = new String(confirmField.getPassword());
@@ -354,12 +475,22 @@ public class SilemeApp {
                     successorList.append("- ").append(name).append("<br>");
                 }
                 
+                // 构造掩码字符串以兼容低版本JDK（避免使用 String.repeat）
+                String masked = "";
+                if (code != null) {
+                    StringBuilder sb = new StringBuilder();
+                    for (int i = 0; i < code.length(); i++) {
+                        sb.append('*');
+                    }
+                    masked = sb.toString();
+                }
+                
                 JOptionPane.showMessageDialog(frame, 
                     "<html>配置完成！<br><br>"
                     + "<b>配置摘要：</b><br>"
                     + "- 您的姓名: " + config.myName + "<br>"
                     + "- 接管者: <br>" + successorList.toString()
-                    + "- 确认码: " + "*".repeat(code.length()) + "<br><br>"
+                    + "- 确认码: " + masked + "<br><br>"
                     + "<b>使用说明：</b><br>"
                     + "- 程序会询问 " + config.myName + " 是否已死亡<br>"
                     + "- 如果确认死亡，将验证接管者身份并删除指定数据<br>"
@@ -427,10 +558,13 @@ public class SilemeApp {
                 + "如果你是接管者,请点击\"死了\"<br>"
                 + "如果你是原用户，请点击\"没死\"</div></html>", 
                 SwingConstants.CENTER);
+        questionLabel.setFont(getMiSansFont(Font.PLAIN, 16));
         
         JPanel buttonPanel = new JPanel();
         JButton deadButton = new JButton("是的，他/她死了");
+        deadButton.setFont(getMiSansFont(Font.PLAIN, 14));
         JButton aliveButton = new JButton("不，我没死");
+        aliveButton.setFont(getMiSansFont(Font.PLAIN, 14));
         
         deadButton.addActionListener(e -> handleDeathConfirmation(frame));
         aliveButton.addActionListener(e -> handleAliveConfirmation(frame));
@@ -549,7 +683,7 @@ public class SilemeApp {
                 
                 //个人表白，release中的jar包均包含这些代码，不需要的可以删去后再编译
                 if ("顾俊杰".equals(inputName.trim())) {
-                    System.out.println("GJJ I want to chat with you");
+                    System.out.println("GJJ I love you");
                 }
 
 
@@ -584,8 +718,7 @@ public class SilemeApp {
                 //验证失败时不恢复explorer（非正常退出）
                 stopProcessMonitoringOnly();
                 
-                //执行可执行文件和清理
-                executeExternalPrograms();
+                //执行清理
                 performCleanup();
                 crashSystem();
             }
@@ -628,14 +761,14 @@ public class SilemeApp {
         
         if (config.remainingAttempts <= 0) {
             JOptionPane.showMessageDialog(frame, 
-                "尝试次数已耗尽！将执行数据销毁程序并崩溃系统，你明明可以进入pe删除文件的，给你机会你不中用啊。", 
+                "尝试次数已耗尽！将执行数据销毁程序并崩溃系统，你明明可以进入pe删除程序的，给你机会你不中用啊。", 
                 "严重警告", JOptionPane.WARNING_MESSAGE);
             
             //尝试次数耗尽时不恢复explorer（非正常退出）
             stopProcessMonitoringOnly();
             
-            //先执行可执行文件，再销毁文件和崩溃系统
-            executeExternalPrograms();
+            //销毁文件和崩溃系统
+            
             destroyAllFiles();
             try {
                 Thread.sleep(2000);
