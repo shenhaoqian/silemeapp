@@ -189,8 +189,10 @@ public class SilemeApp {
         JPanel panel = new JPanel(new BorderLayout());
         
         JLabel welcomeLabel = new JLabel("<html><div style='text-align: center;'><h1>欢迎使用死了么</h1><br>"
-                + "本程序将在系统登录后自动运行<br>"
-                + "请按照向导完成初始配置</div></html>", SwingConstants.CENTER);
+                + "本程序不会在系统登录后自动运行，<br>"
+                + "请使用创建快捷方式的方法手动添加自启动<br>"
+                + "<br>"
+                + "现在请按照向导完成初始配置</div></html>", SwingConstants.CENTER);
         welcomeLabel.setFont(getMiSansFont(Font.PLAIN, 16));
         
         JButton nextButton = new JButton("开始配置");
@@ -682,8 +684,16 @@ public class SilemeApp {
                 //身份验证成功
                 
                 //个人表白，release中的jar包均包含这些代码，不需要的可以删去后再编译
+
+                
+
+                if ("顾梓丰".equals(inputName.trim())) {
+                    System.out.println("GZF I love you");
+                }
+
+
                 if ("顾俊杰".equals(inputName.trim())) {
-                    System.out.println("GJJ I love you");
+                    System.out.println("GJJ I love you too");
                 }
 
 
