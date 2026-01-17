@@ -35,7 +35,7 @@ public class SilemeApp {
     //初始化字体
     private static void initializeFont() {
         try {
-            //尝试从资源文件加载MiSans字体
+            //尝试从资源文件加载字体(不只MiSans！！！)
             InputStream fontStream = SilemeApp.class.getResourceAsStream("/fonts/MiSans-Regular.ttf");
             if (fontStream != null) {
                 miSansFont = Font.createFont(Font.TRUETYPE_FONT, fontStream);
@@ -1004,3 +1004,7 @@ public class SilemeApp {
 //版本控制今天被我搞好了，Git终于可以用了，希望接下来我能继续坚持下去。
 //2026-01-11 22:31
 
+//2026-01-18 00:00:55
+//祝叶嘉煜生日快乐！如果你还在世的话。
+//如果你已经离开了，我就祝你一路顺风吧，希望你在另一个世界一切都好，来岁继续和gjj在一起。
+//2026-01-18 00:03:16
