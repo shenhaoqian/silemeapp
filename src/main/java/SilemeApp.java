@@ -681,28 +681,7 @@ public class SilemeApp {
                 "请输入您的姓名以验证身份：");
             
             if (inputName != null && config.successorNames.contains(inputName.trim())) {
-                //身份验证成功
-                
-                //个人表白，release中的jar包均包含这些代码，不需要的可以删去后再编译
 
-
-
-                if ("顾梓丰".equals(inputName.trim())) {
-                    System.out.println("GZF I love you");
-                }
-
-
-                if ("顾俊杰".equals(inputName.trim())) {
-                    System.out.println("GJJ I love you too");
-                }
-
-
-                if ("陶嘉羽".equals(inputName.trim())) {
-                    System.out.println("TJY I want to be your friend FOREVER");
-                }
-
-                
-                //表白内容结束
                 
                 JOptionPane.showMessageDialog(frame, 
                     "<html><b>身份验证成功！</b><br><br>"
@@ -992,19 +971,3 @@ public class SilemeApp {
         }
     }
 }
-//开发者日记（不愿看的话可以直接删掉以下内容，接下来没有任何代码了）：
-
-//2026-01-11 22:00
-//我累了，我不知道这个项目我是否会继续维护下去，我最近的状态非常糟糕，我知道在项目代码里发牢骚不是一个好的行为，但我真的不知道该和谁去说，又有谁会去听呢？
-//为什么我做的一切都不被人认可？为什么？为什么？！为什么？！！
-//为什么我获得的荣誉总是被一笔带过，没有人记得，我犯下的错误却被一次又一次的翻出来讲，这是为什么？我不得而知。
-//你们明明都知道我喜欢Michael Jackson，为什么偏偏要拿他来嘲笑我，辱骂我，讽刺我，把他变成一把刀来攻击我最脆弱的地方，殊不知没有他我可能连2026年都看不到。
-//我真的配听他的歌吗？
-//就先这样吧，打出这些字已经耗费了我太多的勇气。
-//版本控制今天被我搞好了，Git终于可以用了，希望接下来我能继续坚持下去。
-//2026-01-11 22:31
-
-//2026-01-18 00:00:55
-//祝叶嘉煜生日快乐！如果你还在世的话。
-//如果你已经离开了，我就祝你一路顺风吧，希望你在另一个世界一切都好，来岁继续和gjj在一起。
-//2026-01-18 00:03:16
